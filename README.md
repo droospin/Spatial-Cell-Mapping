@@ -1,4 +1,4 @@
-#Line-Patterns-Single
+# Line-Patterns-Single
 Please read the main readme file before using this or any other pipeline.
 
 This is pipeline is built to analyze and map individual cell z-stacks on line micropatterns with three channels: a reference channel (most often F-actin or a membrane stain, to mark the cell shape), a protein of interest, and DNA (Hoechst dye).
