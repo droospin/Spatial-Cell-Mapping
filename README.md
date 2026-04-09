@@ -1,10 +1,8 @@
-# Spatial-Cell-Mapping
-MATLAB-based computational mapping tools used to characterize and map cells confined to micropattern geometries that are used to force cells into different physiological behaviors like migration and stabilization.
+# Circle-Patterns-Single
+Please read the main readme file before using this or any other pipeline.
 
-The power of micropatterns comes from the idea that all cells being imaged will have the same shape, so you can easily align cells and look at trends in protein localizations and structural organizations during specific behaviors, something that is much more difficult to do with most standardly used cell culture techniques.
+This is pipeline is built to analyze and map individual cell z-stacks on circle micropatterns with three channels: a reference channel (most often F-actin or a membrane stain, to mark the cell shape), a protein of interest, and DNA (Hoechst dye).
 
-For more information, check out the following:
+To ensure you are analyzing the desired channel, use the proper channel reader in the main branch and align the numbers with the channels you see.
 
-Grespin, A. B., Farrington, J. S., Niven, T. G., Russell, L. J., Loerke, D., David, A. J., Grespin, M. S., Culkin, C. M., Bartoletti, A. P., Meadows, S. M., & Kushner, E. J. (2026). PRINCIPLES GOVERNING ENDOTHELIAL CAVEOLAE ORGANIZATION DURING ANGIOGENESIS. bioRxiv : the preprint server for biology, 2026.03.27.714916. https://doi.org/10.64898/2026.03.27.714916
-
-Grespin, D. B., Niven, T. G., Babson, R. O., & Kushner, E. J. (2023). Lipidure-based micropattern fabrication for stereotyping cell geometry. Scientific reports, 13(1), 20451. https://doi.org/10.1038/s41598-023-47516-8
+There are two pipelines in this branch: 1) circle_alignment is meant to be run on an image folder, with its output being the input for circle_analysis 2) circle_3d as a stand alone with expected input of an image folder.
