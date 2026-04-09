@@ -5,6 +5,6 @@ The power of micropatterns comes from the idea that all cells being imaged will 
 
 For more information, check out the following:
 
-Grespin, D. B., Farrington, J. S., Niven, T. G., Russell, L. J., Loerke, D., David, A. J., Grespin, M. S., Culkin, C. M., Bartoletti, A. P., Meadows, S. M., & Kushner, E. J. (2026). PRINCIPLES GOVERNING ENDOTHELIAL CAVEOLAE ORGANIZATION DURING ANGIOGENESIS. bioRxiv : the preprint server for biology, 2026.03.27.714916. https://doi.org/10.64898/2026.03.27.714916
+Grespin, A. B., Farrington, J. S., Niven, T. G., Russell, L. J., Loerke, D., David, A. J., Grespin, M. S., Culkin, C. M., Bartoletti, A. P., Meadows, S. M., & Kushner, E. J. (2026). PRINCIPLES GOVERNING ENDOTHELIAL CAVEOLAE ORGANIZATION DURING ANGIOGENESIS. bioRxiv : the preprint server for biology, 2026.03.27.714916. https://doi.org/10.64898/2026.03.27.714916
 
 Grespin, D. B., Niven, T. G., Babson, R. O., & Kushner, E. J. (2023). Lipidure-based micropattern fabrication for stereotyping cell geometry. Scientific reports, 13(1), 20451. https://doi.org/10.1038/s41598-023-47516-8
