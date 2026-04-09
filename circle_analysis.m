@@ -224,7 +224,7 @@ F      = getframe(gca);      % exact pixels
 RGB    = F.cdata;            % exact colors
 imwrite(RGB, 'normAvgIntProt.png');  % identical in appearance
 
-%% Section 12:
+%% Section 9:
 
 distVint(:, 1) = normIntProtdistFromEdge;
 distVint(:, 2) = normIntProtInt;
@@ -237,7 +237,7 @@ circleYlim     = [0 1]; Ytick = 0:0.2:1;
 [outDistVint] = smooth_and_plot(distVint, 0.05, titleStg, xAxisStg, yAxisStg, circleXlim, circleYlim, Xtick, Ytick);
 circleOut.distVint = distVint;
 
-%% Section 13: IntProt Probability calculations and plotting
+%% Section 10: IntProt Probability calculations and plotting
 
 roundDist                 = ceil(intProtdistFromCenter);
 normDist                  = roundDist / max(roundDist);
@@ -347,7 +347,7 @@ F      = getframe(gca);      % exact pixels
 RGB    = F.cdata;            % exact colors
 imwrite(RGB, 'denIntProt.png');  % identical in appearance
 
-%% Section 18: Save
+%% Section 11: Save
 
 circleOut.normAvgIntProt = normAvgIntProt;
 circleOut.probIntProt    = probIntProt;
