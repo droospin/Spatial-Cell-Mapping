@@ -296,7 +296,7 @@ F      = getframe(gca);      % exact pixels
 RGB    = F.cdata;            % exact colors
 imwrite(RGB, 'probIntProt.png');  % identical in appearance
 
-%% Section 15: Calculate the density of a given circle for 
+%% Section 11: Calculate the density of a given circle for 
 
 % Radial distances (rounded and sorted)
 roundDist                  = ceil(intProtdistFromCenter); % Round radial distances
@@ -319,7 +319,7 @@ end
 % Normalize cumulative density
 normCumulativeDen = cumulativeDen / max(cumulativeDen); 
 
-%% **Create Density Heatmap**
+%% Create Density Heatmap
 denIntProt = zeros(size(roundScaledIntProtdistFromCent)); % Preallocate
 
 % Assign computed densities to corresponding radial regions
@@ -334,7 +334,7 @@ for i = 1:numel(uniqueRoundDist)-1
     %end
 end
 
-%% **Plot Density Heatmap**
+%% Plot Density Heatmap
 figure;
 imagesc(denIntProt);
 %title(['Density Map of ', proteinName]);
@@ -347,7 +347,7 @@ F      = getframe(gca);      % exact pixels
 RGB    = F.cdata;            % exact colors
 imwrite(RGB, 'denIntProt.png');  % identical in appearance
 
-%% Section 11: Save
+%% Section 12: Save
 
 circleOut.normAvgIntProt = normAvgIntProt;
 circleOut.probIntProt    = probIntProt;
