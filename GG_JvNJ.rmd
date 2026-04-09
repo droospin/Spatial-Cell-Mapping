@@ -1,0 +1,823 @@
+---
+title: "GG_JvNJ"
+author: "D. Grespin"
+date: "2026-01-14"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+## Load Libraries
+
+```{r load-libraries}
+
+library(R.matlab)
+library(ggplot2)
+library(ggpubr)
+library(ggbreak)
+library(dplyr)
+library(effectsize)
+library(tidyr)
+
+```
+
+## Load and arrange Matlab data
+
+You can also embed plots, for example:
+
+```{r load-variables}
+
+# read MATLAB .mat file into R (make sure to copy full path or place in your working directory)
+intStruct1 <- readMat('/Users/drew.grespin/Library/CloudStorage/OneDrive-UniversityofDenver/cav1_project/dataMats/confluentLine_dataMats/Paper/junctionline10um_confluent_Mar25.mat')
+intStruct2 <- readMat('/Users/drew.grespin/Library/CloudStorage/OneDrive-UniversityofDenver/cav1_project/dataMats/confluentLine_dataMats/Paper/junctionline15um_confluent_Mar25.mat')
+intStruct3 <- readMat('/Users/drew.grespin/Library/CloudStorage/OneDrive-UniversityofDenver/cav1_project/dataMats/confluentLine_dataMats/Paper/junctionline20um_confluent_Mar25.mat')
+
+# =========================
+# EXTRACT DATA FROM STRUCTS
+# =========================
+
+# NonA (J vs NJ)
+J1  <- intStruct1$lineOut[[9]]
+J2  <- intStruct2$lineOut[[9]]
+J3  <- intStruct3$lineOut[[9]]
+
+NJ1 <- intStruct1$lineOut[[12]]
+NJ2 <- intStruct2$lineOut[[12]]
+NJ3 <- intStruct3$lineOut[[12]]
+
+# A versions
+J1A  <- intStruct1$lineOut[[10]]
+J2A  <- intStruct2$lineOut[[10]]
+J3A  <- intStruct3$lineOut[[10]]
+
+NJ1A <- intStruct1$lineOut[[13]]
+NJ2A <- intStruct2$lineOut[[13]]
+NJ3A <- intStruct3$lineOut[[13]]
+
+#Cav1
+J1  <- data.frame(Normalized_Intensity = J1)
+J2  <- data.frame(Normalized_Intensity = J2)
+J3  <- data.frame(Normalized_Intensity = J3)
+
+NJ1 <- data.frame(Normalized_Intensity = NJ1)
+NJ2 <- data.frame(Normalized_Intensity = NJ2)
+NJ3 <- data.frame(Normalized_Intensity = NJ3)
+
+# A versions
+J1A  <- data.frame(Normalized_Intensity = J1A)
+J2A  <- data.frame(Normalized_Intensity = J2A)
+J3A  <- data.frame(Normalized_Intensity = J3A)
+
+NJ1A <- data.frame(Normalized_Intensity = NJ1A)
+NJ2A <- data.frame(Normalized_Intensity = NJ2A)
+NJ3A <- data.frame(Normalized_Intensity = NJ3A)
+
+```
+
+## Isolate desired data segments for analysis
+
+You can also embed plots, for example:
+
+```{r isolate-segments}
+
+nrow(J1)
+nrow(J2)
+nrow(J3)
+nrow(NJ1)
+nrow(NJ2)
+nrow(NJ3)
+nrow(J1A)
+nrow(J2A)
+nrow(J3A)
+nrow(NJ1A)
+nrow(NJ2A)
+nrow(NJ3A)
+
+```
+
+## Set up data frame for plotting
+
+```{r df-setup}
+
+dfPlot <- data.frame(
+                     Intensity = c(
+                       J1$Normalized_Intensity,
+                       J2$Normalized_Intensity,
+                       J3$Normalized_Intensity,
+                       NJ1$Normalized_Intensity,
+                       NJ2$Normalized_Intensity,
+                       NJ3$Normalized_Intensity,
+                       J1A$Normalized_Intensity,
+                       J2A$Normalized_Intensity,
+                       J3A$Normalized_Intensity,
+                       NJ1A$Normalized_Intensity,
+                       NJ2A$Normalized_Intensity,
+                       NJ3A$Normalized_Intensity
+                     ),
+                     Protein = factor(c(
+                       rep("Cav1", length(J1$Normalized_Intensity)),
+                       rep("Cav1", length(J2$Normalized_Intensity)),
+                       rep("Cav1", length(J3$Normalized_Intensity)),
+                       rep("Cav1", length(NJ1$Normalized_Intensity)),
+                       rep("Cav1", length(NJ2$Normalized_Intensity)),
+                       rep("Cav1", length(NJ3$Normalized_Intensity)),
+                       rep("Actin", length(J1A$Normalized_Intensity)),
+                       rep("Actin", length(J2A$Normalized_Intensity)),
+                       rep("Actin", length(J3A$Normalized_Intensity)),
+                       rep("Actin", length(NJ1A$Normalized_Intensity)),
+                       rep("Actin", length(NJ2A$Normalized_Intensity)),
+                       rep("Actin", length(NJ3A$Normalized_Intensity))
+                     ), levels = c("Cav1", "Actin")),
+                     
+                     Size = factor(c(
+                       rep("10", length(J1$Normalized_Intensity)),
+                       rep("15", length(J2$Normalized_Intensity)),
+                       rep("20", length(J3$Normalized_Intensity)),
+                       rep("10", length(NJ1$Normalized_Intensity)),
+                       rep("15", length(NJ2$Normalized_Intensity)),
+                       rep("20", length(NJ3$Normalized_Intensity)),
+                       rep("10", length(J1A$Normalized_Intensity)),
+                       rep("15", length(J2A$Normalized_Intensity)),
+                       rep("20", length(J3A$Normalized_Intensity)),
+                       rep("10", length(NJ1A$Normalized_Intensity)),
+                       rep("15", length(NJ2A$Normalized_Intensity)),
+                       rep("20", length(NJ3A$Normalized_Intensity))
+                     ), levels = c("10", "15", "20")),
+                     
+                      Junction = factor(c(
+                       rep("J", length(J1$Normalized_Intensity)),
+                       rep("J", length(J2$Normalized_Intensity)),
+                       rep("J", length(J3$Normalized_Intensity)),
+                       rep("NJ", length(NJ1$Normalized_Intensity)),
+                       rep("NJ", length(NJ2$Normalized_Intensity)),
+                       rep("NJ", length(NJ3$Normalized_Intensity)),
+                       rep("J", length(J1A$Normalized_Intensity)),
+                       rep("J", length(J2A$Normalized_Intensity)),
+                       rep("J", length(J3A$Normalized_Intensity)),
+                       rep("NJ", length(NJ1A$Normalized_Intensity)),
+                       rep("NJ", length(NJ2A$Normalized_Intensity)),
+                       rep("NJ", length(NJ3A$Normalized_Intensity))
+                     ), levels = c("J", "NJ"))
+                    )
+
+xpos_map <- c(
+  "10_J"  = 1.0,
+  "10_NJ" = 1.4,
+  "15_J"  = 1.9,
+  "15_NJ" = 2.3,
+  "20_J"  = 2.8,
+  "20_NJ" = 3.2
+)
+
+dfPlot <- dfPlot %>%
+  mutate(x_pos = paste0(Size, "_", Junction)) %>%
+  mutate(x_pos = xpos_map[x_pos])
+
+```
+
+## Compute stats for custom box & whiskers (IQR)
+
+```{r iqr-compute}
+
+library(dplyr)
+
+# Cav1
+box_stats <- dfPlot %>%
+  filter(Protein == "Cav1") %>%
+  group_by(Junction, Size, x_pos) %>%   # group by Size and Junction if you want separate boxes per Junction
+  summarise(
+    lower   = quantile(Intensity, 0.25, na.rm = TRUE),
+    median  = quantile(Intensity, 0.50, na.rm = TRUE),
+    upper   = quantile(Intensity, 0.75, na.rm = TRUE),
+    .groups = "drop"
+  )
+
+# Actin
+box_statsA <- dfPlot %>%
+  filter(Protein == "Actin") %>%
+  group_by(Junction, Size, x_pos) %>%
+  summarise(
+    lower   = quantile(Intensity, 0.25, na.rm = TRUE),
+    median  = quantile(Intensity, 0.50, na.rm = TRUE),
+    upper   = quantile(Intensity, 0.75, na.rm = TRUE),
+    .groups = "drop"
+  )
+
+```
+
+```
+
+## Compute stats for confidence interval & Cohen's d
+
+```{r stat-compute}
+
+# ---------------------------
+# Cav1: J vs NJ
+# ---------------------------
+
+J_int10  <- dfPlot$Intensity[dfPlot$Protein=="Cav1" & dfPlot$Size=="10" & dfPlot$Junction=="J"]
+NJ_int10 <- dfPlot$Intensity[dfPlot$Protein=="Cav1" & dfPlot$Size=="10" & dfPlot$Junction=="NJ"]
+
+J_int15  <- dfPlot$Intensity[dfPlot$Protein=="Cav1" & dfPlot$Size=="15" & dfPlot$Junction=="J"]
+NJ_int15 <- dfPlot$Intensity[dfPlot$Protein=="Cav1" & dfPlot$Size=="15" & dfPlot$Junction=="NJ"]
+
+J_int20  <- dfPlot$Intensity[dfPlot$Protein=="Cav1" & dfPlot$Size=="20" & dfPlot$Junction=="J"]
+NJ_int20 <- dfPlot$Intensity[dfPlot$Protein=="Cav1" & dfPlot$Size=="20" & dfPlot$Junction=="NJ"]
+
+# ---------------------------
+# Actin: J vs NJ
+# ---------------------------
+
+J_int10A  <- dfPlot$Intensity[dfPlot$Protein=="Actin" & dfPlot$Size=="10" & dfPlot$Junction=="J"]
+NJ_int10A <- dfPlot$Intensity[dfPlot$Protein=="Actin" & dfPlot$Size=="10" & dfPlot$Junction=="NJ"]
+
+J_int15A  <- dfPlot$Intensity[dfPlot$Protein=="Actin" & dfPlot$Size=="15" & dfPlot$Junction=="J"]
+NJ_int15A <- dfPlot$Intensity[dfPlot$Protein=="Actin" & dfPlot$Size=="15" & dfPlot$Junction=="NJ"]
+
+J_int20A  <- dfPlot$Intensity[dfPlot$Protein=="Actin" & dfPlot$Size=="20" & dfPlot$Junction=="J"]
+NJ_int20A <- dfPlot$Intensity[dfPlot$Protein=="Actin" & dfPlot$Size=="20" & dfPlot$Junction=="NJ"]
+
+# ---------------------------
+# Compute Cohen's d
+# ---------------------------
+
+cohens_d(J_int10, NJ_int10)
+cohens_d(J_int15, NJ_int15)
+cohens_d(J_int20, NJ_int20)
+
+cohens_d(J_int10A, NJ_int10A)
+cohens_d(J_int15A, NJ_int15A)
+cohens_d(J_int20A, NJ_int20A)
+
+# ---------------------------
+# Means and differences
+# ---------------------------
+
+mean(J_int10); mean(NJ_int10); mean(J_int10) - mean(NJ_int10)
+mean(J_int15); mean(NJ_int15); mean(J_int15) - mean(NJ_int15)
+mean(J_int20); mean(NJ_int20); mean(J_int20) - mean(NJ_int20)
+
+mean(J_int10A); mean(NJ_int10A); mean(J_int10A) - mean(NJ_int10A)
+mean(J_int15A); mean(NJ_int15A); mean(J_int15A) - mean(NJ_int15A)
+mean(J_int20A); mean(NJ_int20A); mean(J_int20A) - mean(NJ_int20A)
+
+# ---------------------------
+# 95% confidence intervals
+# ---------------------------
+
+t.test(J_int10, NJ_int10)$conf.int
+t.test(J_int15, NJ_int15)$conf.int
+t.test(J_int20, NJ_int20)$conf.int
+
+t.test(J_int10A, NJ_int10A)$conf.int
+t.test(J_int15A, NJ_int15A)$conf.int
+t.test(J_int20A, NJ_int20A)$conf.int
+
+```
+
+## Sample (for large datasets) and compute statistical significance between groups
+
+You can also embed plots, for example:
+
+```{r signif-test-cav1}
+
+# J comparison 10 to 15 um
+pval_J_10to15 <- t.test(
+                         dfPlot$Intensity[dfPlot$Protein=="Cav1" & dfPlot$Size=="10" & dfPlot$Junction=="J"],
+                         dfPlot$Intensity[dfPlot$Protein=="Cav1" & dfPlot$Size=="15" & dfPlot$Junction=="J"]
+                        )$p.value
+
+# NJ comparison 10 to 15 um
+pval_NJ_10to15 <- t.test(
+                          dfPlot$Intensity[dfPlot$Protein=="Cav1" & dfPlot$Size=="10" & dfPlot$Junction=="NJ"],
+                          dfPlot$Intensity[dfPlot$Protein=="Cav1" & dfPlot$Size=="15" & dfPlot$Junction=="NJ"]
+                         )$p.value
+
+# J comparison 10 to 20 um
+pval_J_10to20 <- t.test(
+                          dfPlot$Intensity[dfPlot$Protein=="Cav1" & dfPlot$Size=="10" & dfPlot$Junction=="J"],
+                          dfPlot$Intensity[dfPlot$Protein=="Cav1" & dfPlot$Size=="20" & dfPlot$Junction=="J"]
+                         )$p.value
+
+# NJ comparison 10 to 20 um
+pval_NJ_10to20 <- t.test(
+                           dfPlot$Intensity[dfPlot$Protein=="Cav1" & dfPlot$Size=="10" & dfPlot$Junction=="NJ"],
+                           dfPlot$Intensity[dfPlot$Protein=="Cav1" & dfPlot$Size=="20" & dfPlot$Junction=="NJ"]
+                          )$p.value
+
+# J comparison 15 to 20 um
+pval_J_15to20 <- t.test(
+                          dfPlot$Intensity[dfPlot$Protein=="Cav1" & dfPlot$Size=="15" & dfPlot$Junction=="J"],
+                          dfPlot$Intensity[dfPlot$Protein=="Cav1" & dfPlot$Size=="20" & dfPlot$Junction=="J"]
+                         )$p.value
+ 
+# NJ comparison 15 to 20 um
+pval_NJ_15to20 <- t.test(
+                           dfPlot$Intensity[dfPlot$Protein=="Cav1" & dfPlot$Size=="15" & dfPlot$Junction=="NJ"],
+                           dfPlot$Intensity[dfPlot$Protein=="Cav1" & dfPlot$Size=="20" & dfPlot$Junction=="NJ"]
+                          )$p.value
+
+# 4 hours front to rear comparison
+pval_10 <- t.test(
+                           dfPlot$Intensity[dfPlot$Protein=="Cav1" & dfPlot$Size=="10" & dfPlot$Junction=="J"],
+                           dfPlot$Intensity[dfPlot$Protein=="Cav1" & dfPlot$Size=="10" & dfPlot$Junction=="NJ"]
+                )$p.value
+
+# 8 hours front to rear comparison
+pval_15 <- t.test(
+                           dfPlot$Intensity[dfPlot$Protein=="Cav1" & dfPlot$Size=="15" & dfPlot$Junction=="J"],
+                           dfPlot$Intensity[dfPlot$Protein=="Cav1" & dfPlot$Size=="15" & dfPlot$Junction=="NJ"]
+                )$p.value
+
+# 24 hours front to rear comparison
+pval_20 <- t.test(
+                  dfPlot$Intensity[dfPlot$Protein=="Cav1" & dfPlot$Size=="20" & dfPlot$Junction=="J"],
+                  dfPlot$Intensity[dfPlot$Protein=="Cav1" & dfPlot$Size=="20" & dfPlot$Junction=="NJ"]
+                 )$p.value
+
+## =========================
+## Significance bars (ALL)
+## =========================
+
+# Helper: p-value -> significance label
+p_to_label <- function(p) {
+  ifelse(p < 0.001, "***",
+         ifelse(p < 0.01, "**",
+                ifelse(p < 0.05, "*", "ns")))
+}
+
+# Build table of ALL comparisons you ran
+sig_tests <- data.frame(
+  x_start = c(
+    xpos_map["10_J"],  xpos_map["10_NJ"],   # 4 -> 8
+    xpos_map["10_J"],  xpos_map["10_NJ"],   # 4 -> 24
+    xpos_map["15_J"],  xpos_map["15_NJ"],   # 8 -> 24
+    xpos_map["10_J"],  xpos_map["15_J"],    # Rear vs Front
+    xpos_map["20_J"]
+  ),
+  x_end = c(
+    xpos_map["15_J"],  xpos_map["15_NJ"],
+    xpos_map["20_J"], xpos_map["20_NJ"],
+    xpos_map["20_J"], xpos_map["20_NJ"],
+    xpos_map["10_NJ"], xpos_map["15_NJ"],
+    xpos_map["20_NJ"]
+  ),
+  pval = c(
+    pval_J_10to15,  pval_NJ_10to15,
+    pval_J_10to20, pval_NJ_10to20,
+    pval_J_15to20, pval_NJ_15to20,
+    pval_10, pval_15, pval_20
+  )
+)
+
+y_start      <- 1.25
+y_step       <- 0.19
+y_within_grp <- 1.06   # fixed y for Rear vs Front comparisons
+
+sig_lines <- sig_tests %>%
+  dplyr::mutate(
+    # identify Rear vs Front within the same protein
+    within_group =
+      (x_start == xpos_map["10_J"]  & x_end == xpos_map["10_NJ"])  |
+      (x_start == xpos_map["15_J"]  & x_end == xpos_map["15_NJ"])  |
+      (x_start == xpos_map["20_J"] & x_end == xpos_map["20_NJ"])
+  ) %>%
+  dplyr::mutate(
+    # assign y positions
+    y = ifelse(
+      within_group,
+      y_within_grp,
+      y_start + y_step * (dplyr::row_number() - 1 - cumsum(within_group))
+    ),
+    label = p_to_label(pval)
+  )
+
+```
+
+## Sample (for large datasets) and compute statistical significance between groups
+
+You can also embed plots, for example:
+
+```{r signif-test-actin}
+
+# J comparison 10 to 15 um
+pval_J_10to15A <- t.test(
+                         dfPlot$Intensity[dfPlot$Protein=="Cav1" & dfPlot$Size=="10" & dfPlot$Junction=="J"],
+                         dfPlot$Intensity[dfPlot$Protein=="Cav1" & dfPlot$Size=="15" & dfPlot$Junction=="J"]
+                        )$p.value
+
+# NJ comparison 10 to 15 um
+pval_NJ_10to15A <- t.test(
+                          dfPlot$Intensity[dfPlot$Protein=="Cav1" & dfPlot$Size=="10" & dfPlot$Junction=="NJ"],
+                          dfPlot$Intensity[dfPlot$Protein=="Cav1" & dfPlot$Size=="15" & dfPlot$Junction=="NJ"]
+                         )$p.value
+
+# J comparison 10 to 20 um
+pval_J_10to20A <- t.test(
+                          dfPlot$Intensity[dfPlot$Protein=="Cav1" & dfPlot$Size=="10" & dfPlot$Junction=="J"],
+                          dfPlot$Intensity[dfPlot$Protein=="Cav1" & dfPlot$Size=="20" & dfPlot$Junction=="J"]
+                         )$p.value
+
+# NJ comparison 10 to 20 um
+pval_NJ_10to20A <- t.test(
+                           dfPlot$Intensity[dfPlot$Protein=="Cav1" & dfPlot$Size=="10" & dfPlot$Junction=="NJ"],
+                           dfPlot$Intensity[dfPlot$Protein=="Cav1" & dfPlot$Size=="20" & dfPlot$Junction=="NJ"]
+                          )$p.value
+
+# J comparison 15 to 20 um
+pval_J_15to20A <- t.test(
+                          dfPlot$Intensity[dfPlot$Protein=="Cav1" & dfPlot$Size=="15" & dfPlot$Junction=="J"],
+                          dfPlot$Intensity[dfPlot$Protein=="Cav1" & dfPlot$Size=="20" & dfPlot$Junction=="J"]
+                         )$p.value
+ 
+# NJ comparison 15 to 20 um
+pval_NJ_15to20A <- t.test(
+                           dfPlot$Intensity[dfPlot$Protein=="Cav1" & dfPlot$Size=="15" & dfPlot$Junction=="NJ"],
+                           dfPlot$Intensity[dfPlot$Protein=="Cav1" & dfPlot$Size=="20" & dfPlot$Junction=="NJ"]
+                          )$p.value
+
+# 4 hours front to rear comparison
+pval_10A <- t.test(
+                           dfPlot$Intensity[dfPlot$Protein=="Cav1" & dfPlot$Size=="10" & dfPlot$Junction=="J"],
+                           dfPlot$Intensity[dfPlot$Protein=="Cav1" & dfPlot$Size=="10" & dfPlot$Junction=="NJ"]
+                )$p.value
+
+# 8 hours front to rear comparison
+pval_15A <- t.test(
+                           dfPlot$Intensity[dfPlot$Protein=="Cav1" & dfPlot$Size=="15" & dfPlot$Junction=="J"],
+                           dfPlot$Intensity[dfPlot$Protein=="Cav1" & dfPlot$Size=="15" & dfPlot$Junction=="NJ"]
+                )$p.value
+
+# 24 hours front to rear comparison
+pval_20A <- t.test(
+                  dfPlot$Intensity[dfPlot$Protein=="Cav1" & dfPlot$Size=="20" & dfPlot$Junction=="J"],
+                  dfPlot$Intensity[dfPlot$Protein=="Cav1" & dfPlot$Size=="20" & dfPlot$Junction=="NJ"]
+                 )$p.value
+
+## =========================
+## Significance bars (ALL)
+## =========================
+
+# Helper: p-value -> significance label
+p_to_label <- function(p) {
+  ifelse(p < 0.001, "***",
+         ifelse(p < 0.01, "**",
+                ifelse(p < 0.05, "*", "ns")))
+}
+
+# Build table of ALL comparisons you ran
+sig_testsA <- data.frame(
+  x_start = c(
+    xpos_map["10_J"],  xpos_map["10_NJ"],   # 4 -> 8
+    xpos_map["10_J"],  xpos_map["10_NJ"],   # 4 -> 24
+    xpos_map["15_J"],  xpos_map["15_NJ"],   # 8 -> 24
+    xpos_map["10_J"],  xpos_map["15_J"],    # Rear vs Front
+    xpos_map["20_J"]
+  ),
+  x_end = c(
+    xpos_map["15_J"],  xpos_map["15_NJ"],
+    xpos_map["20_J"], xpos_map["20_NJ"],
+    xpos_map["20_J"], xpos_map["20_NJ"],
+    xpos_map["10_NJ"], xpos_map["15_NJ"],
+    xpos_map["20_NJ"]
+  ),
+  pval = c(
+    pval_J_10to15A,  pval_NJ_10to15A,
+    pval_J_10to20A, pval_NJ_10to20A,
+    pval_J_15to20A, pval_NJ_15to20A,
+    pval_10A, pval_15A, pval_20A
+  )
+)
+
+y_start      <- 1.25
+y_step       <- 0.19
+y_within_grp <- 1.06   # fixed y for Rear vs Front comparisons
+
+sig_linesA <- sig_testsA %>%
+  dplyr::mutate(
+    # identify Rear vs Front within the same protein
+    within_group =
+      (x_start == xpos_map["10_J"]  & x_end == xpos_map["10_NJ"])  |
+      (x_start == xpos_map["15_J"]  & x_end == xpos_map["15_NJ"])  |
+      (x_start == xpos_map["20_J"] & x_end == xpos_map["20_NJ"])
+  ) %>%
+  dplyr::mutate(
+    # assign y positions
+    y = ifelse(
+      within_group,
+      y_within_grp,
+      y_start + y_step * (dplyr::row_number() - 1 - cumsum(within_group))
+    ),
+    label = p_to_label(pval)
+  )
+
+```
+
+## Preset theme elements
+
+```{r theme-setup}
+
+# Define colors
+region_colors <- c("J" = "red", "NJ" = "green")
+
+# Define line parameters
+median_length   <- 0.3
+quartile_length <- 0.2
+
+median_size   <- 4
+quartile_size <- 3
+
+# Define theme
+plot_theme <- theme_minimal() +
+  theme(
+    plot.title         = element_text(size = 20, face = 'bold', hjust = 0.5, family = 'Arial'),
+    axis.title         = element_text(size = 16, face = 'bold', hjust = 0.5, family = 'Arial'),
+    axis.text.y        = element_text(size = 72, hjust = 0.5, family = 'Arial', face = 'bold'),
+    panel.grid.major.y = element_line(linewidth = 4, color = 'gray40'),
+    panel.grid.major.x = element_blank(),
+    panel.grid.minor.x = element_blank(),
+    legend.position    = "none"
+  )
+
+```
+
+## Setup plot features
+
+```{r plot-setup-cav1}
+
+boxplot <- ggplot(dfPlot %>% filter(Protein == "Cav1"), aes(x = x_pos, y = Intensity)) +
+           # Raw points
+           geom_jitter(
+                       width = 0.14,
+                       alpha = 0.05,
+                       size  = 0.5,
+                       color = "black"
+           ) +
+           # Vertical IQR line
+           geom_segment(
+                        data = box_stats,
+                        aes(x = x_pos, xend = x_pos, y = lower, yend = upper, color = Junction),
+                        size = quartile_size
+                       ) +
+           # Q1 and Q3 horizontal lines
+           geom_segment(
+                        data = box_stats,
+                        aes(
+                            x     = x_pos - quartile_length / 2,
+                            xend  = x_pos + quartile_length / 2,
+                            y     = lower,
+                            yend  = lower,
+                            color = Junction
+                           ),
+                           size = quartile_size
+                       ) +
+           geom_segment(
+                        data = box_stats,
+                        aes(
+                            x     = x_pos - quartile_length / 2,
+                            xend  = x_pos + quartile_length / 2,
+                            y     = upper,
+                            yend  = upper,
+                            color = Junction
+                           ),
+                           size = quartile_size
+                       ) +
+           # Median line
+           geom_segment(
+                        data = box_stats,
+                        aes(
+                            x     = x_pos - median_length / 2,
+                            xend  = x_pos + median_length / 2,
+                            y     = median,
+                            yend  = median,
+                            color = Junction
+                           ),
+                        size = median_size
+                       ) +
+           #X/Y scales
+           scale_x_continuous(
+                              breaks = c(1.0, 1.4, 2.2, 2.6, 3.4, 3.8),
+                              labels = c("", "", "", "", "", ""),
+                              expand = c(0, 0)
+                             ) +
+           scale_y_continuous(
+                              limits = c(-.1, 2.45),
+                              breaks = seq(0, 1, 0.25),
+                              expand = c(0, 0)
+                             ) +
+           # Color of IQR lines
+           scale_color_manual(
+                              values = c(region_colors)  # combined for points and segments
+                             ) +
+           # Remove axis labels
+           labs(x = NULL, y = NULL) +
+           # add plot set up elements
+           plot_theme
+
+```
+
+## Add significance to plot
+
+```{r signif-plot-cav1}
+
+boxplot <- boxplot +
+           geom_segment(
+                        data = sig_lines,
+                        aes(x = x_start,
+                            xend = x_end,
+                            y = y,
+                            yend = y),
+                        color = "black",
+                        size = 6
+                       ) +
+           geom_text(
+                       data = sig_lines,
+                              aes(
+                                  x = (x_start + x_end) / 2,
+                                  y = y + ifelse(label == "ns", 0.17, 0.01),
+                                  label = label
+                                 ),
+                              size = 50
+                    )
+
+```
+
+## Plot Output
+
+```{r print-plot-cav1, fig.width = 22, fig.height = 11}
+
+boxplot
+
+```
+
+## Setup plot features
+
+```{r plot-setup-actin}
+
+boxplot <- ggplot(dfPlot %>% filter(Protein == "Actin"), aes(x = x_pos, y = Intensity)) +
+           # Raw points
+           geom_jitter(
+                       width = 0.14,
+                       alpha = 0.05,
+                       size  = 0.5,
+                       color = "black"
+           ) +
+           # Vertical IQR line
+           geom_segment(
+                        data = box_statsA,
+                        aes(x = x_pos, xend = x_pos, y = lower, yend = upper, color = Junction),
+                        size = quartile_size
+                       ) +
+           # Q1 and Q3 horizontal lines
+           geom_segment(
+                        data = box_statsA,
+                        aes(
+                            x     = x_pos - quartile_length / 2,
+                            xend  = x_pos + quartile_length / 2,
+                            y     = lower,
+                            yend  = lower,
+                            color = Junction
+                           ),
+                           size = quartile_size
+                       ) +
+           geom_segment(
+                        data = box_statsA,
+                        aes(
+                            x     = x_pos - quartile_length / 2,
+                            xend  = x_pos + quartile_length / 2,
+                            y     = upper,
+                            yend  = upper,
+                            color = Junction
+                           ),
+                           size = quartile_size
+                       ) +
+           # Median line
+           geom_segment(
+                        data = box_statsA,
+                        aes(
+                            x     = x_pos - median_length / 2,
+                            xend  = x_pos + median_length / 2,
+                            y     = median,
+                            yend  = median,
+                            color = Junction
+                           ),
+                        size = median_size
+                       ) +
+           #X/Y scales
+           scale_x_continuous(
+                              breaks = c(1.0, 1.4, 2.2, 2.6, 3.4, 3.8),
+                              labels = c("", "", "", "", "", ""),
+                              expand = c(0, 0)
+                             ) +
+           scale_y_continuous(
+                              limits = c(-.1, 2.45),
+                              breaks = seq(0, 1, 0.25),
+                              expand = c(0, 0)
+                             ) +
+           # Color of IQR lines
+           scale_color_manual(
+                              values = c(region_colors)  # combined for points and segments
+                             ) +
+           # Remove axis labels
+           labs(x = NULL, y = NULL) +
+           # add plot set up elements
+           plot_theme
+
+```
+
+## Add significance to plot
+
+```{r signif-plot-actin}
+
+boxplot <- boxplot +
+           geom_segment(
+                        data = sig_linesA,
+                        aes(x = x_start,
+                            xend = x_end,
+                            y = y,
+                            yend = y),
+                        color = "black",
+                        size = 6
+                       ) +
+           geom_text(
+                       data = sig_lines,
+                              aes(
+                                  x = (x_start + x_end) / 2,
+                                  y = y + ifelse(label == "ns", 0.17, 0.01),
+                                  label = label
+                                 ),
+                              size = 50
+                    )
+
+```
+
+## Plot Output
+
+```{r print-plot-actin, fig.width = 22, fig.height = 11}
+
+boxplot
+
+```
+
+```{r big-ratio-finder}
+
+```{r big-ratio-finder-reno}
+
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+
+# =========================
+# BUILD BIG RATIO DATASET
+# =========================
+
+# =========================
+# BUILD BIG RATIO DATASET
+# =========================
+
+ratio_df_big <- dfPlot %>%
+  # compute mean per Protein, Size, and Junction
+  group_by(Protein, Size, Junction) %>%
+  summarise(mean_int = mean(Intensity, na.rm = TRUE), .groups = "drop") %>%
+  # pivot so J (Rear) and NJ (Front) are columns
+  pivot_wider(names_from = Junction, values_from = mean_int) %>%
+  # compute ratio Rear / Front
+  mutate(ratio = J / NJ) %>%
+  # create x-axis factor in exact order you want
+  mutate(x_axis = factor(
+    paste0(Protein, "_", Size),
+    levels = c("Cav1_10","Cav1_15","Cav1_20","Actin_10","Actin_15","Actin_20")
+  ))
+
+# =========================
+# BIG RATIO PLOT
+# =========================
+
+ratio_plot <- ggplot(ratio_df_big, aes(x = x_axis, y = ratio)) +
+  geom_col(width = 0.5, fill = "grey40") +
+  geom_hline(yintercept = 1, linetype = "dashed") +
+  theme_classic(base_size = 32) +
+  labs(x = "", y = "") +
+  theme(
+    axis.title.x = element_blank(),
+    axis.title.y = element_blank(),
+    axis.text.x  = element_blank(),
+    axis.ticks.x = element_blank()
+  ) +
+  scale_y_continuous(limits = c(0, 3.1), breaks = seq(0,3,0.5), expand = c(0, 0))
+  
+```
+
+```{r big-ratio-plot, fig.width=5, fig.height=3}
+ratio_plot
+
+```
+

@@ -1,0 +1,134 @@
+---
+title: "GGplot2_DistVint_1set.Rmd"
+author: "D. Grespin"
+date: "June-2025"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+
+knitr::opts_chunk$set(echo = TRUE)
+
+```
+
+# Load necessary packages 
+```{r load-libraries}
+
+library(ggplot2)    # load high graphics plotting package
+library(R.matlab)   # load MATLAB variable/structure reading package
+library(patchwork)  # Load gridding package for plotting side-by-side
+library(scales)     # for more effective scaling
+library(dplyr)
+
+```
+
+# Read files in properly and create data frames 
+```{r load-variables}
+
+# read MATLAB .mat file into R (make sure to copy full path or place in your working directory)
+distVintStruct <- readMat('/Users/drew.grespin/Library/CloudStorage/OneDrive-UniversityofDenver/cav1_project/dataMats/track_dataMats/track24_forR_Mar25.mat')
+
+# '/Users/drew.grespin/Library/CloudStorage/OneDrive-UniversityofDenver/Jasper/Project II/5.22.25 L417 C57BL6 P7 CAV1 VECAD/Denoised 60x Leaf Bed/distVintStableRetina_May29.mat'
+
+# Load raw data ------------------------------------------------------------------------------------------------------
+
+distVintRaw     <- distVintStruct$track24.Mar25[[5]] # pull proper variable from MATLAB structure
+dfRaw           <- data.frame(distVintRaw)    # convert object to data frame
+# Set column names BEFORE using them
+
+colnames(dfRaw) <- c('Normalized_Distance', 'Normalized_Intensity')
+
+# Bin distances and take stratified sample
+
+
+# Load interpolated data
+distVintInterp     <- distVintStruct$track24.Mar25[[6]]  # pull proper variable from MATLAB structure
+dfInterp           <- data.frame(distVintInterp)             # convert object to data frame
+colnames(dfInterp) <- c('x', 'mean', 'sd', 'sem', 'weights') # change column names
+
+# Load raw data ------------------------------------------------------------------------------------------------------
+
+```
+# Plotting Distance vs. Intensity ------------------------------------------------------------------------------------
+
+# Plotting parameters 
+## Scatter plot
+```{r scatter} 
+
+scatterPlot  <- ggplot(data = dfRaw, mapping = aes(x = Normalized_Distance, y = Normalized_Intensity)) + 
+                  geom_point(alpha = 0.05, color = "black", size = .25) # for circle: 0.05 alpha, size can be removed; for line: 0.25 alpha, size = 5;
+
+scatterPlot2 <- scatterPlot +
+                  theme_bw() +
+                  theme(plot.title         = element_text(size = 20, hjust = 0.5, family = 'Arial'),  # main title
+                        plot.subtitle      = element_text(size = 20, hjust = 0.5, family = 'Arial'),  # subtitle
+                        plot.margin        = margin(t = 30, r = 40, b = 30, l = 40, unit = "pt"),
+                        axis.title         = element_text(size = 20, hjust = 0.5, family = 'Arial'), 
+                        axis.text.x        = element_text(size = 72, family = "Arial", margin = margin(t = 28), face = "bold"),
+                        axis.text.y        = element_text(size = 72, family = "Arial", margin = margin(r = 5), face = "bold"),
+                        panel.grid.major   = element_line(linewidth = 5, color = 'gray40'),
+                        panel.grid.minor.x = element_line(linewidth = 2.5, color = 'gray40'),  
+                        panel.grid.minor.y = element_line(linewidth = 2.5, color = 'gray40')) +
+                  labs(title    = NULL,  # changes main title
+                       subtitle = NULL,                      # changes subtitle
+                       x        = NULL,          # changes x axis title
+                       y        = NULL) +       # changes y axis title
+                  scale_x_continuous(limits = c(0, 1),
+                                     breaks = c( 0, 0.5, 1),
+                                     minor_breaks = seq(0, 1, 0.25),   # keep minor ticks
+                                     expand = c(0, 0)) +
+                  scale_y_continuous(limits = c( 0, 1),
+                                     breaks = c(0, 0.5, 1),
+                                     minor_breaks = seq(0, 1, 0.25),   # keep minor ticks
+                                     expand = c(0, 0))
+
+```
+
+## Interpolated plot
+```{r interpolated}
+
+# Creating interpolated plot
+interpPlot  <- ggplot(dfInterp, aes(x = x, y = mean)) +
+                  geom_line(color = "blue", size = 5) +
+                  geom_ribbon(aes(ymin = mean - sd, ymax = mean + sd), fill = "blue", alpha = 0.3)
+
+interpPlot2 <- interpPlot +
+                  theme_bw() +
+                  theme(plot.title         = element_text(size = 20, hjust = 0.5, family = 'Arial'), # main title
+                        plot.subtitle      = element_text(size = 20, hjust = 0.5, family = 'Arial'), # subtitle
+                        plot.margin        = margin(t = 30, r = 40, b = 30, l = 40, unit = "pt"),
+                        axis.title         = element_text(size = 20, hjust = 0.5, family = 'Arial'), 
+                        axis.text.x        = element_text(size = 72, family = "Arial", margin = margin(t = 28), face = "bold"),
+                        axis.text.y        = element_text(size = 72, family = "Arial", margin = margin(r = 5), face = "bold"),
+                        panel.grid.major   = element_line(linewidth = 5, color = 'gray40'),
+                        panel.grid.minor.x = element_line(linewidth = 2.5, color = 'gray40'),
+                        panel.grid.minor.y = element_line(linewidth = 2.5, color = 'gray40')) +
+                  labs(title    = NULL,  # changes main title
+                       subtitle = NULL,  # changes subtitle
+                       x        = NULL,          # changes x axis title
+                       y        = NULL) +       # changes y axis title
+                  scale_x_continuous(limits = c(0, 1),
+                                     breaks = c(0, 0.5, 1),
+                                     minor_breaks = seq(0, 1, 0.25),   # keep minor ticks
+                                     expand = c(0, 0)) +
+                  scale_y_continuous(limits = c( 0, 1),
+                                     breaks = c(0, 0.5, 1),
+                                     minor_breaks = seq(0, 1, 0.25),   # keep minor ticks
+                                     expand = c(0, 0))
+
+```
+
+# Scatter and interpolated plots 
+side by side 
+```{r combo-plot, fig.width = 15.5, fig.height = 6}
+
+# fig.width = 14, fig.height = 7 is standard for paper
+# fig.width = 19, fig.height = 7 is for circle in paper
+# fig.width = 20.25, fig.height = 4.5 is for lines in paper
+# fig.width = 20.25, fig.height = 9 is for crossbows in paper
+# fig.width = 15.5, fig.height = 6 is standard for confluent lines in paper
+# fig.width = 19, fig.height = 10 for taller ones
+
+scatterPlot2 + interpPlot2
+
+```

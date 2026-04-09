@@ -1,0 +1,609 @@
+---
+title: "GG_Sidedness_3var"
+author: "D. Grespin"
+date: "2026-01-14"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+## Load Libraries
+
+```{r load-libraries}
+
+library(R.matlab)
+library(ggplot2)
+library(ggpubr)
+library(ggbreak)
+library(dplyr)
+library(effectsize)
+
+```
+
+## Load and arrange Matlab data
+
+You can also embed plots, for example:
+
+```{r load-variables}
+
+# read MATLAB .mat file into R (make sure to copy full path or place in your working directory)
+distVintStruct1 <- readMat('/Users/drew.grespin/Library/CloudStorage/OneDrive-UniversityofDenver/cav1_project/dataMats/track_dataMats/track4_forR_Mar25.mat')
+distVintStruct2 <- readMat('/Users/drew.grespin/Library/CloudStorage/OneDrive-UniversityofDenver/cav1_project/dataMats/track_dataMats/track8_forR_Mar25.mat')
+distVintStruct3 <- readMat('/Users/drew.grespin/Library/CloudStorage/OneDrive-UniversityofDenver/cav1_project/dataMats/track_dataMats/track24_forR_Mar25.mat')
+
+# Load raw data
+distVintRaw1 <- distVintStruct1$track4.Mar25            # pull proper variable from MATLAB structure
+dfRaw1       <- data.frame(
+                           Normalized_Distance  = distVintRaw1[[5]][,1],
+                           Normalized_Intensity = distVintRaw1[[5]][,2]
+                          )
+
+distVintRaw2 <- distVintStruct2$track8.Mar25                   # pull proper variable from MATLAB structure
+dfRaw2       <- data.frame(
+                           Normalized_Distance  = distVintRaw2[[5]][,1],
+                           Normalized_Intensity = distVintRaw2[[5]][,2]
+                          )
+
+distVintRaw3 <- distVintStruct3$track24.Mar25                   # pull proper variable from MATLAB structure
+dfRaw3       <- data.frame(
+                           Normalized_Distance  = distVintRaw3[[5]][,1],
+                           Normalized_Intensity = distVintRaw3[[5]][,2]
+                          )
+
+```
+
+## Isolate desired data segments for analysis
+
+You can also embed plots, for example:
+
+```{r isolate-segments}
+
+# Split df1 into high and low
+
+dfRaw1_rear  <- dfRaw1[dfRaw1$Normalized_Distance <= 0.1, ]
+dfRaw1_front <- dfRaw1[dfRaw1$Normalized_Distance >  0.1, ]
+
+# Split df2 into high and low
+dfRaw2_rear   <- dfRaw2[dfRaw2$Normalized_Distance <= 0.1, ]
+dfRaw2_front  <- dfRaw2[dfRaw2$Normalized_Distance >  0.1, ]
+
+# Split df3 into high and low
+dfRaw3_rear   <- dfRaw3[dfRaw3$Normalized_Distance <= 0.1, ]
+dfRaw3_front  <- dfRaw3[dfRaw3$Normalized_Distance >  0.1, ]
+
+nrow(dfRaw1_rear)
+nrow(dfRaw1_front)
+nrow(dfRaw2_rear)
+nrow(dfRaw2_front)
+nrow(dfRaw3_rear)
+nrow(dfRaw3_front)
+
+```
+
+## Set up data frame for plotting
+
+```{r df-setup}
+
+dfPlot <- data.frame(
+                     Intensity = c(
+                       dfRaw1_rear$Normalized_Intensity,
+                       dfRaw1_front$Normalized_Intensity,
+                       dfRaw2_rear$Normalized_Intensity,
+                       dfRaw2_front$Normalized_Intensity,
+                       dfRaw3_rear$Normalized_Intensity,
+                       dfRaw3_front$Normalized_Intensity
+                     ),
+                     Protein = factor(c(
+                       rep("4",  length(dfRaw1_rear$Normalized_Intensity)),
+                       rep("4",  length(dfRaw1_front$Normalized_Intensity)),
+                       rep("8",  length(dfRaw2_rear$Normalized_Intensity)),
+                       rep("8",  length(dfRaw2_front$Normalized_Intensity)),
+                       rep("24", length(dfRaw3_rear$Normalized_Intensity)),
+                       rep("24", length(dfRaw3_front$Normalized_Intensity))
+                     ), levels = c("4", "8", "24")),
+                     
+                     Region = factor(c(
+                       rep("Rear",  length(dfRaw1_rear$Normalized_Intensity)),
+                       rep("Front", length(dfRaw1_front$Normalized_Intensity)),
+                       rep("Rear",  length(dfRaw2_rear$Normalized_Intensity)),
+                       rep("Front", length(dfRaw2_front$Normalized_Intensity)),
+                       rep("Rear",  length(dfRaw3_rear$Normalized_Intensity)),
+                       rep("Front", length(dfRaw3_front$Normalized_Intensity))
+                     ), levels = c("Rear", "Front"))
+                    )
+
+xpos_map <- c(
+              "4 Rear"   = 1.0,
+              "4 Front"  = 1.4,
+              "8 Rear"   = 1.9,
+              "8 Front"  = 2.3,
+              "24 Rear"  = 2.8,
+              "24 Front" = 3.2
+             )
+
+dfPlot$x_pos <- xpos_map[paste(dfPlot$Protein, dfPlot$Region)]
+
+```
+
+## Compute stats for custom box & whiskers (IQR)
+
+```{r iqr-compute}
+
+box_stats <- dfPlot %>%
+  group_by(Region, x_pos) %>%
+  summarise(
+            lower   = quantile(Intensity, 0.25, na.rm = TRUE),
+            median  = quantile(Intensity, 0.50, na.rm = TRUE),
+            upper   = quantile(Intensity, 0.75, na.rm = TRUE),
+            .groups = "drop"
+           )
+
+```
+
+## Compute stats for confidence interval & Cohen's d
+
+```{r stat-compute}
+
+rear_int4 <- dfPlot %>%
+                 filter(Protein == "4", Region == "Rear") %>%
+                 pull(Intensity)
+
+front_int4 <- dfPlot %>%
+                 filter(Protein == "4", Region == "Front") %>%
+                 pull(Intensity)
+
+rear_int8 <- dfPlot %>%
+                 filter(Protein == "8", Region == "Rear") %>%
+                 pull(Intensity)
+
+front_int8 <- dfPlot %>%
+                 filter(Protein == "8", Region == "Front") %>%
+                 pull(Intensity)
+
+rear_int24 <- dfPlot %>%
+                 filter(Protein == "24", Region == "Rear") %>%
+                 pull(Intensity)
+
+front_int24 <- dfPlot %>%
+                 filter(Protein == "24", Region == "Front") %>%
+                 pull(Intensity)
+
+cohens_d(rear_int4,  front_int4)
+cohens_d(rear_int8,  front_int8)
+cohens_d(rear_int24, front_int24)
+cohens_d(rear_int4,  rear_int8)
+cohens_d(rear_int4,  rear_int24)
+cohens_d(rear_int8,  rear_int24)
+
+mean(rear_int4)
+mean(front_int4)
+mean(rear_int4) - mean(front_int4)
+
+t.test(rear_int4, front_int4)$conf.int
+
+mean(rear_int8)
+mean(front_int8)
+mean(rear_int8) - mean(front_int8)
+
+t.test(rear_int8, front_int8)$conf.int
+
+mean(rear_int24)
+mean(front_int24)
+mean(rear_int24) - mean(front_int24)
+
+t.test(rear_int24, front_int24)$conf.int
+
+```
+
+## Sample (for large datasets) and compute statistical significance between groups
+
+You can also embed plots, for example:
+
+```{r signif-test}
+
+# Rear comparison 4 to 8 hours
+pval_rear_4to8 <- t.test(
+                         dfPlot$Intensity[dfPlot$Protein == "4" & dfPlot$Region == "Rear"],
+                         dfPlot$Intensity[dfPlot$Protein == "8" & dfPlot$Region == "Rear"]
+                        )$p.value
+
+# Front comparison 4 to 8 hours
+pval_front_4to8 <- t.test(
+                          dfPlot$Intensity[dfPlot$Protein == "4" & dfPlot$Region == "Front"],
+                          dfPlot$Intensity[dfPlot$Protein == "8" & dfPlot$Region == "Front"]
+                         )$p.value
+
+# Rear comparison 4 to 24 hours
+pval_rear_4to24 <- t.test(
+                          dfPlot$Intensity[dfPlot$Protein == "4" & dfPlot$Region == "Rear"],
+                          dfPlot$Intensity[dfPlot$Protein == "24" & dfPlot$Region == "Rear"]
+                         )$p.value
+
+# Front comparison 4 to 24 hours
+pval_front_4to24 <- t.test(
+                           dfPlot$Intensity[dfPlot$Protein == "4" & dfPlot$Region == "Front"],
+                           dfPlot$Intensity[dfPlot$Protein == "24" & dfPlot$Region == "Front"]
+                          )$p.value
+
+# Rear comparison 8 to 24 hours
+pval_rear_8to24 <- t.test(
+                          dfPlot$Intensity[dfPlot$Protein == "8" & dfPlot$Region == "Rear"],
+                          dfPlot$Intensity[dfPlot$Protein == "24" & dfPlot$Region == "Rear"]
+                         )$p.value
+ 
+# Front comparison 8 to 24 hours
+pval_front_8to24 <- t.test(
+                           dfPlot$Intensity[dfPlot$Protein == "8" & dfPlot$Region == "Front"],
+                           dfPlot$Intensity[dfPlot$Protein == "24" & dfPlot$Region == "Front"]
+                          )$p.value
+
+# 4 hours front to rear comparison
+pval_4 <- t.test(
+                 dfPlot$Intensity[dfPlot$Protein == "4" & dfPlot$Region == "Rear"],
+                 dfPlot$Intensity[dfPlot$Protein == "4" & dfPlot$Region == "Front"]
+                )$p.value
+
+# 8 hours front to rear comparison
+pval_8 <- t.test(
+                 dfPlot$Intensity[dfPlot$Protein == "8" & dfPlot$Region == "Rear"],
+                 dfPlot$Intensity[dfPlot$Protein == "8" & dfPlot$Region == "Front"]
+                )$p.value
+
+# 24 hours front to rear comparison
+pval_24 <- t.test(
+                  dfPlot$Intensity[dfPlot$Protein == "24" & dfPlot$Region == "Rear"],
+                  dfPlot$Intensity[dfPlot$Protein == "24" & dfPlot$Region == "Front"]
+                 )$p.value
+
+## =========================
+## Significance bars (ALL)
+## =========================
+
+# Helper: p-value -> significance label
+p_to_label <- function(p) {
+  ifelse(p < 0.001, "***",
+         ifelse(p < 0.01, "**",
+                ifelse(p < 0.05, "*", "ns")))
+}
+
+# Build table of ALL comparisons you ran
+sig_tests <- data.frame(
+  x_start = c(
+    xpos_map["4 Rear"],  xpos_map["4 Front"],   # 4 -> 8
+    xpos_map["4 Rear"],  xpos_map["4 Front"],   # 4 -> 24
+    xpos_map["8 Rear"],  xpos_map["8 Front"],   # 8 -> 24
+    xpos_map["4 Rear"],  xpos_map["8 Rear"],    # Rear vs Front
+    xpos_map["24 Rear"]
+  ),
+  x_end = c(
+    xpos_map["8 Rear"],  xpos_map["8 Front"],
+    xpos_map["24 Rear"], xpos_map["24 Front"],
+    xpos_map["24 Rear"], xpos_map["24 Front"],
+    xpos_map["4 Front"], xpos_map["8 Front"],
+    xpos_map["24 Front"]
+  ),
+  pval = c(
+    pval_rear_4to8,  pval_front_4to8,
+    pval_rear_4to24, pval_front_4to24,
+    pval_rear_8to24, pval_front_8to24,
+    pval_4, pval_8, pval_24
+  )
+)
+
+y_start      <- 1.25
+y_step       <- 0.19
+y_within_grp <- 1.06   # fixed y for Rear vs Front comparisons
+
+sig_lines <- sig_tests %>%
+  dplyr::mutate(
+    # identify Rear vs Front within the same protein
+    within_group =
+      (x_start == xpos_map["4 Rear"]  & x_end == xpos_map["4 Front"])  |
+      (x_start == xpos_map["8 Rear"]  & x_end == xpos_map["8 Front"])  |
+      (x_start == xpos_map["24 Rear"] & x_end == xpos_map["24 Front"])
+  ) %>%
+  dplyr::mutate(
+    # assign y positions
+    y = ifelse(
+      within_group,
+      y_within_grp,
+      y_start + y_step * (dplyr::row_number() - 1 - cumsum(within_group))
+    ),
+    label = p_to_label(pval)
+  )
+
+```
+
+## Preset theme elements
+
+```{r theme-setup}
+
+# Define colors
+region_colors <- c("Rear" = "red", "Front" = "green")
+
+# Define line parameters
+median_length   <- 0.3
+quartile_length <- 0.2
+
+median_size   <- 4
+quartile_size <- 3
+
+# Define theme
+plot_theme <- theme_minimal() +
+  theme(
+    plot.title         = element_text(size = 20, face = 'bold', hjust = 0.5, family = 'Arial'),
+    axis.title         = element_text(size = 16, face = 'bold', hjust = 0.5, family = 'Arial'),
+    axis.text.y        = element_text(size = 72, hjust = 0.5, family = 'Arial', face = 'bold'),
+    panel.grid.major.y = element_line(linewidth = 4, color = 'gray40'),
+    panel.grid.major.x = element_blank(),
+    panel.grid.minor.x = element_blank(),
+    legend.position    = "none"
+  )
+
+```
+
+## Setup plot features
+
+```{r plot-setup}
+
+boxplot <- ggplot(dfPlot, aes(x = x_pos, y = Intensity)) +
+           # Raw points
+           geom_jitter(
+                       width = 0.14,
+                       alpha = 0.05,
+                       size  = 0.5,
+                       color = "black"
+           ) +
+           # Vertical IQR line
+           geom_segment(
+                        data = box_stats,
+                        aes(x = x_pos, xend = x_pos, y = lower, yend = upper, color = Region),
+                        size = quartile_size
+                       ) +
+           # Q1 and Q3 horizontal lines
+           geom_segment(
+                        data = box_stats,
+                        aes(
+                            x     = x_pos - quartile_length / 2,
+                            xend  = x_pos + quartile_length / 2,
+                            y     = lower,
+                            yend  = lower,
+                            color = Region
+                           ),
+                           size = quartile_size
+                       ) +
+           geom_segment(
+                        data = box_stats,
+                        aes(
+                            x     = x_pos - quartile_length / 2,
+                            xend  = x_pos + quartile_length / 2,
+                            y     = upper,
+                            yend  = upper,
+                            color = Region
+                           ),
+                           size = quartile_size
+                       ) +
+           # Median line
+           geom_segment(
+                        data = box_stats,
+                        aes(
+                            x     = x_pos - median_length / 2,
+                            xend  = x_pos + median_length / 2,
+                            y     = median,
+                            yend  = median,
+                            color = Region
+                           ),
+                        size = median_size
+                       ) +
+           #X/Y scales
+           scale_x_continuous(
+                              breaks = c(1.0, 1.4, 2.2, 2.6, 3.4, 3.8),
+                              labels = c("", "", "", "", "", ""),
+                              expand = c(0, 0)
+                             ) +
+           scale_y_continuous(
+                              limits = c(-.1, 2.45),
+                              breaks = seq(0, 1, 0.25),
+                              expand = c(0, 0)
+                             ) +
+           # Color of IQR lines
+           scale_color_manual(
+                              values = c(region_colors)  # combined for points and segments
+                             ) +
+           # Remove axis labels
+           labs(x = NULL, y = NULL) +
+           # add plot set up elements
+           plot_theme
+
+```
+
+## Add significance to plot
+
+```{r signif-plot}
+
+boxplot <- boxplot +
+           geom_segment(
+                        data = sig_lines,
+                        aes(x = x_start,
+                            xend = x_end,
+                            y = y,
+                            yend = y),
+                        color = "black",
+                        size = 6
+                       ) +
+           geom_text(
+                       data = sig_lines,
+                              aes(
+                                  x = (x_start + x_end) / 2,
+                                  y = y + ifelse(label == "ns", 0.17, 0.01),
+                                  label = label
+                                 ),
+                              size = 50
+                    )
+
+```
+
+## Plot Output
+
+```{r print-plot, fig.width = 22, fig.height = 11}
+
+boxplot
+
+```
+
+```{r ratio-finder}
+
+ratio_df <- dfPlot %>%
+  group_by(Protein, Region) %>%
+  summarise(mean_int = mean(Intensity, na.rm = TRUE), .groups = "drop") %>%
+  tidyr::pivot_wider(names_from = Region, values_from = mean_int) %>%
+  mutate(ratio = Rear / Front)
+  
+## Rear/Front ratio plot
+
+ratio_plot <- ggplot(ratio_df, aes(x = Protein, y = ratio)) +
+  geom_col(width = 0.5, fill = "grey40") +
+  geom_hline(yintercept = 1, linetype = "dashed", color = "black") +
+  theme_classic(base_size = 32) +
+  labs(
+    x = "",
+    y = ""
+  ) +
+  theme(
+    axis.title.x = element_blank(),
+    axis.title.y = element_blank(),
+    axis.text.x  = element_blank(),   # removes "5 10 15 20 10A"
+    axis.ticks.x = element_blank()   # removes tick marks
+       ) +
+  scale_y_continuous(
+                              limits = c(0, 1.6),
+                              breaks = seq(0, 1.5, 0.5),
+                              expand = c(0, 0)
+                             )
+  
+```
+
+```{r ratio-plot, fig.width=3.5, fig.height=2.5}
+ratio_plot
+
+```
+
+```{r big-ratio-finder}
+
+# =========================
+# BUILD BIG RATIO DATASET
+# =========================
+
+split_df <- function(df) {
+  list(
+    rear  = df[df$Normalized_Distance <= 0.1, ],
+    front = df[df$Normalized_Distance >  0.1, ]
+  )
+}
+
+make_ratio_df <- function(df1, df2, df3, idx, prefix = "") {
+  
+  # extract correct column index
+  d1 <- data.frame(
+    Normalized_Distance  = df1[[idx]][,1],
+    Normalized_Intensity = df1[[idx]][,2]
+  )
+  d2 <- data.frame(
+    Normalized_Distance  = df2[[idx]][,1],
+    Normalized_Intensity = df2[[idx]][,2]
+  )
+  d3 <- data.frame(
+    Normalized_Distance  = df3[[idx]][,1],
+    Normalized_Intensity = df3[[idx]][,2]
+  )
+  
+  s1 <- split_df(d1)
+  s2 <- split_df(d2)
+  s3 <- split_df(d3)
+  
+  df <- data.frame(
+    Intensity = c(
+      s1$rear$Normalized_Intensity,  s1$front$Normalized_Intensity,
+      s2$rear$Normalized_Intensity,  s2$front$Normalized_Intensity,
+      s3$rear$Normalized_Intensity,  s3$front$Normalized_Intensity
+    ),
+    Protein = factor(c(
+      rep("4",  length(s1$rear$Normalized_Intensity)),
+      rep("4",  length(s1$front$Normalized_Intensity)),
+      rep("8",  length(s2$rear$Normalized_Intensity)),
+      rep("8",  length(s2$front$Normalized_Intensity)),
+      rep("24", length(s3$rear$Normalized_Intensity)),
+      rep("24", length(s3$front$Normalized_Intensity))
+    )),
+    Region = factor(c(
+      rep("Rear",  length(s1$rear$Normalized_Intensity)),
+      rep("Front", length(s1$front$Normalized_Intensity)),
+      rep("Rear",  length(s2$rear$Normalized_Intensity)),
+      rep("Front", length(s2$front$Normalized_Intensity)),
+      rep("Rear",  length(s3$rear$Normalized_Intensity)),
+      rep("Front", length(s3$front$Normalized_Intensity))
+    ))
+  )
+  
+  df %>%
+    dplyr::group_by(Protein, Region) %>%
+    dplyr::summarise(mean_int = mean(Intensity, na.rm = TRUE), .groups = "drop") %>%
+    tidyr::pivot_wider(names_from = Region, values_from = mean_int) %>%
+    dplyr::mutate(
+      ratio = Rear / Front,
+      Protein = paste0(prefix, Protein)
+    )
+}
+
+# ORIGINAL (index 5)
+ratio_main <- make_ratio_df(distVintRaw1, distVintRaw2, distVintRaw3, 5, "")
+
+# ALT (index 1)
+ratio_alt  <- make_ratio_df(distVintRaw1, distVintRaw2, distVintRaw3, 1, "Alt_")
+
+# COMBINE
+ratio_df_big <- rbind(ratio_alt, ratio_main)
+ratio_df_big$Protein <- factor(
+  ratio_df_big$Protein,
+  levels = c("Alt_4", "Alt_8", "Alt_24", "4", "8", "24")
+)
+
+# =========================
+# BIG RATIO PLOT
+# =========================
+
+ratio_plot <- ggplot(ratio_df_big, aes(x = Protein, y = ratio)) +
+  geom_col(width = 0.5, fill = "grey40") +
+  geom_hline(yintercept = 1, linetype = "dashed") +
+  theme_classic(base_size = 32) +
+  labs(
+    x = "",
+    y = ""
+  ) +
+  theme(
+    axis.title.x = element_blank(),
+    axis.title.y = element_blank(),
+    axis.text.x  = element_blank(),   # removes "5 10 15 20 10A"
+    axis.ticks.x = element_blank()   # removes tick marks
+       ) +
+  scale_y_continuous(
+                              limits = c(0, 3.1),
+                              breaks = seq(0, 3, 0.5),
+                              expand = c(0, 0)
+                             )
+  
+  
+```
+
+```{r big-ratio-plot, fig.width=4, fig.height=3}
+ratio_plot
+
+```
