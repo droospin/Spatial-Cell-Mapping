@@ -1,5 +1,5 @@
 # Spatial-Cell-Mapping
-Computational mapping tools used to characterize and map cells confined to micropattern geometries that are used to force cells into different physiological behaviors like migration and stabilization.
+MATLAB-based computational mapping tools used to characterize and map cells confined to micropattern geometries that are used to force cells into different physiological behaviors like migration and stabilization.
 
 The power of micropatterns comes from the idea that all cells being imaged will have the same shape, so you can easily align cells and look at trends in protein localizations and structural organizations during specific behaviors, something that is much more difficult to do with most standardly used cell culture techniques.
 
