@@ -9,6 +9,8 @@ Grespin, D. B., Farrington, J. S., Niven, T. G., Russell, L. J., Loerke, D., Dav
 
 Grespin, D. B., Niven, T. G., Babson, R. O., & Kushner, E. J. (2023). Lipidure-based micropattern fabrication for stereotyping cell geometry. Scientific reports, 13(1), 20451. https://doi.org/10.1038/s41598-023-47516-8
 
+The stack readers are meant for reading z-stack tiff files in MATLAB. If you need to read ND2 image files, I would considering using this very well organized Bioformats Image Toolbox assembled by Jian Wei Tay: https://matlab.mathworks.com/open/fileexchange/v1?id=129249 
+
 The functions in the main branch are important for most of the functions in other branches to run. What I do, due to their ubiquitous nature and to not add too much code to one function, is save them in my path that I am operating in for the function. Then before I run the main function, I ensure that those files are on my working directory or path and the main function.
 
 Please reach out with questions about example datasets, using MATLAB or R, and/or about the code. Cheers!
