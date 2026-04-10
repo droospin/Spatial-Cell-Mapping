@@ -1,10 +1,8 @@
-# Spatial-Cell-Mapping
-Computational mapping tools used to characterize and map cells confined to micropattern geometries that are used to force cells into different physiological behaviors like migration and stabilization.
+# Mouse-Retinal-Vasculature
+Please read the main readme file before using this or any other pipeline.
 
-The power of micropatterns comes from the idea that all cells being imaged will have the same shape, so you can easily align cells and look at trends in protein localizations and structural organizations during specific behaviors, something that is much more difficult to do with most standardly used cell culture techniques.
+There are two main pipelines for this branch. Additionally, the functions in this branch (and this branch only) should be self-sufficient to run the code.
 
-For more information, check out the following:
+The first main pipeline is mouseModelAnalysis. This function will guide you to trace a line across the vascular/angiogenic/migratory front. Then it will calculate the intensities of the protein of interest as a function of normalized distance away from the front. 
 
-Grespin, D. B., Farrington, J. S., Niven, T. G., Russell, L. J., Loerke, D., David, A. J., Grespin, M. S., Culkin, C. M., Bartoletti, A. P., Meadows, S. M., & Kushner, E. J. (2026). PRINCIPLES GOVERNING ENDOTHELIAL CAVEOLAE ORGANIZATION DURING ANGIOGENESIS. bioRxiv : the preprint server for biology, 2026.03.27.714916. https://doi.org/10.64898/2026.03.27.714916
-
-Grespin, D. B., Niven, T. G., Babson, R. O., & Kushner, E. J. (2023). Lipidure-based micropattern fabrication for stereotyping cell geometry. Scientific reports, 13(1), 20451. https://doi.org/10.1038/s41598-023-47516-8
+The second main pipline mouse_per_cell. As it sounds, this function will include tracing cells close to the angiogenic front and mapping the intensities against corresponding distances from the angiogenic front. It is designed to help you see whether a protein/image signal is more rear or front localized in individual cells.
